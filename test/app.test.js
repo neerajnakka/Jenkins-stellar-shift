@@ -23,3 +23,9 @@ describe("Application", () => {
     expect(response.body.status).toBe("READY");
   });
 });
+test("GET /api/info returns application information", async () => {
+  const response = await request(app).get("/api/info");
+
+  expect(response.statusCode).toBe(200);
+  expect(response.body.service).toBe("nodejs-app");
+});
