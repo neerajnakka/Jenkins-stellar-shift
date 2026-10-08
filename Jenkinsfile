@@ -5,6 +5,14 @@ pipeline {
     	timestamps()
 //    	timeout(time:30,unit:'MINUTES')
 		disableConcurrentBuilds()
+		buildDiscarder(
+		    logRotator(
+		        numToKeepStr: '10',
+		        daysToKeepStr: '30',
+		        artifactNumToKeepStr: '5',
+		        artifactDaysToKeepStr: '14'
+		    )
+		)
     	
 	}
 	    environment {
