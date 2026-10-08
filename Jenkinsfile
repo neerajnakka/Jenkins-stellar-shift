@@ -53,7 +53,7 @@ pipeline {
 
         stage("Build") {
             steps {
-                sleep 100
+              
                 sh "npm run build"
             }
         }
@@ -63,16 +63,7 @@ pipeline {
                 sh "docker build -t ${APP_NAME}:${BUILD_NUMBER} ."
             }
         }
-        stage("Timeout stgae"){
-        	options{
-        		timeout(time:10,unit:"SECONDS")
-        	}
-        	steps{
-        		sh "sleep 30s"
-        		echo "hii"
-        	}
-        }
-    }
+      }
 
     post {
         always {
