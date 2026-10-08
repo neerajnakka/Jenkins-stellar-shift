@@ -58,7 +58,7 @@ pipeline {
         		timeout(time:10,unit:"SECONDS")
         	}
         	steps{
-        		sh "Sleep 30s"
+        		sh "sleep 30s"
         		echo "hii"
         	}
         }
