@@ -4,6 +4,7 @@ pipeline {
     	skipDefaultCheckout(true)
     	timestamps()
 //    	timeout(time:30,unit:'MINUTES')
+		disableConcurrentBuilds()
     	
 	}
 	    environment {
@@ -44,6 +45,7 @@ pipeline {
 
         stage("Build") {
             steps {
+                sleep 100
                 sh "npm run build"
             }
         }
