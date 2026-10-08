@@ -2,6 +2,9 @@ pipeline {
     agent any
 	options {
     	skipDefaultCheckout(true)
+    	timsestamps
+    	timeout(time:30,units:'MINUTES')
+    	
 	}
 	    environment {
         APP_NAME = "devops-nodejs-cicd-lab"
