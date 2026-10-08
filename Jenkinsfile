@@ -2,8 +2,8 @@ pipeline {
     agent any
 	options {
     	skipDefaultCheckout(true)
-    	timsestamps
-    	timeout(time:30,units:'MINUTES')
+    	timsestamps()
+//    	timeout(time:30,unit:'MINUTES')
     	
 	}
 	    environment {
@@ -52,6 +52,15 @@ pipeline {
             steps {
                 sh "docker build -t ${APP_NAME}:${BUILD_NUMBER} ."
             }
+        }
+        stage("Timeout stgae"){
+        	options{
+        		timeout(time:10,unit:"SECONDS")
+        	}
+        	steps{
+        		sh "Sleep 30s"
+        		echo "hii"
+        	}
         }
     }
 
