@@ -1,7 +1,9 @@
 pipeline {
     agent any
-
-    environment {
+	options {
+    	skipDefaultCheckout(true)
+	}
+	    environment {
         APP_NAME = "devops-nodejs-cicd-lab"
     }
 
