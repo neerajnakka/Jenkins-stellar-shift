@@ -15,6 +15,11 @@ pipeline {
 		)
     	
 	}
+	parameters{
+		name: 'DEPLOY_ENV',
+		choice: ['DEV','STAGING','PROD'],
+		description: "choose the environemnt where you want to run the pipeline"
+	}
 	    environment {
         APP_NAME = "devops-nodejs-cicd-lab"
     }
