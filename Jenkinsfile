@@ -198,10 +198,25 @@ container_name = os.environ["CONTAINER_NAME"]
 image_uri = os.environ["IMAGE_URI"]
 found = False
 
+
 for container in task["containerDefinitions"]:
     if container["name"] == container_name:
         container["image"] = image_uri
+
+        container["healthCheck"] = {
+            "command": [
+                "CMD-SHELL",
+                "wget --no-verbose --tries=1 --spider "
+                "http://127.0.0.1:3000/health || exit 1"
+            ],
+            "interval": 30,
+            "timeout": 5,
+            "retries": 3,
+            "startPeriod": 10
+        }
+
         found = True
+
 
 if not found:
     raise SystemExit(
