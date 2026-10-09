@@ -171,6 +171,97 @@ pipeline {
                 echo "Branch is ${env.BRANCH_NAME}"
             }
         }
+        
+        stage('Deploy to ECS Fargate') {
+            environment {
+                AWS_REGION = 'ap-southeast-2'
+                ECS_CLUSTER = 'nodejs-cicd-cluster'
+                ECS_SERVICE = 'nodejs-cicd-service'
+                TASK_FAMILY = 'nodejs-cicd-task'
+                CONTAINER_NAME = 'nodejs-app'
+            }
+        
+            steps {
+                sh '''
+                    set -eu
+        
+                    AWS_ACCOUNT_ID=$(aws sts get-caller-identity \
+                        --query Account --output text)
+        
+                    ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                    IMAGE_URI="${ECR_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}"
+                    export IMAGE_URI CONTAINER_NAME
+        
+                    echo "Preparing ECS deployment for ${IMAGE_URI}"
+        
+                    aws ecs describe-task-definition \
+                        --task-definition "$TASK_FAMILY" \
+                        --region "$AWS_REGION" \
+                        --query taskDefinition \
+                        --output json > task-definition-current.json
+        
+                    python3 - <<'PY'
+        import json
+        import os
+        
+        with open("task-definition-current.json") as f:
+            task = json.load(f)
+        
+        # Remove fields returned by DescribeTaskDefinition
+        # that RegisterTaskDefinition does not accept.
+        for key in [
+            "taskDefinitionArn", "revision", "status",
+            "requiresAttributes", "compatibilities",
+            "registeredAt", "registeredBy", "deregisteredAt"
+        ]:
+            task.pop(key, None)
+        
+        container_name = os.environ["CONTAINER_NAME"]
+        image_uri = os.environ["IMAGE_URI"]
+        found = False
+        
+        for container in task["containerDefinitions"]:
+            if container["name"] == container_name:
+                container["image"] = image_uri
+                found = True
+        
+        if not found:
+            raise SystemExit(
+                f"Container {container_name} not found in task definition"
+            )
+        
+        with open("task-definition-new.json", "w") as f:
+            json.dump(task, f)
+        
+        print(f"Prepared task definition with image: {image_uri}")
+        PY
+        
+                    NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+                        --cli-input-json file://task-definition-new.json \
+                        --region "$AWS_REGION" \
+                        --query 'taskDefinition.taskDefinitionArn' \
+                        --output text)
+        
+                    echo "Registered: ${NEW_TASK_DEF_ARN}"
+        
+                    aws ecs update-service \
+                        --cluster "$ECS_CLUSTER" \
+                        --service "$ECS_SERVICE" \
+                        --task-definition "$NEW_TASK_DEF_ARN" \
+                        --region "$AWS_REGION"
+        
+                    echo "Waiting for ECS service to stabilize..."
+        
+                    aws ecs wait services-stable \
+                        --cluster "$ECS_CLUSTER" \
+                        --services "$ECS_SERVICE" \
+                        --region "$AWS_REGION"
+        
+                    echo "ECS deployment completed successfully."
+                '''
+            }
+        }
+        
     }
 
     post {
