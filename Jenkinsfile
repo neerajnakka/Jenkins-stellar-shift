@@ -22,7 +22,7 @@ pipeline {
     }
 
     environment {
-    	DEMO_API_TOKEN = Credentials(demo-api-token)
+		DEMO_API_TOKEN = credentials('demo-api-token')
         APP_NAME = 'devops-nodejs-cicd-lab'
     }
 
@@ -46,7 +46,7 @@ pipeline {
         }
         stage('Verify Credential Binding') {
             steps {
-                sh 'test -n "${DEMO_API_TOKEN}" && echo "Credential binding successful"'
+                sh 'test -n "${DEMO_API_TOKEN}" && echo "Credential binding successful'
             }
         }
 
