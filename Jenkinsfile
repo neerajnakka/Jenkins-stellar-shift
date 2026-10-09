@@ -97,6 +97,32 @@ pipeline {
                       ok: 'Approve'
             }
         }
+        
+        stage('Container Security Scan') {
+            steps {
+                sh '''
+                    set -eu
+        
+                    IMAGE="${APP_NAME}:${BUILD_NUMBER}"
+        
+                    echo "Scanning Docker image: ${IMAGE}"
+        
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -v trivy-cache:/root/.cache/ \
+                        aquasec/trivy:latest \
+                        image \
+                        --scanners vuln \
+                        --severity HIGH,CRITICAL \
+                        --exit-code 1 \
+                        --ignore-unfixed \
+                        "$IMAGE"
+        
+                    echo "Container security scan passed."
+                '''
+            }
+        }
+        
 
         stage('Push to Amazon ECR') {
             steps {
