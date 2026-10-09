@@ -32,8 +32,10 @@ pipeline {
             }
         }
         stage('Display Deploy Stage'){
+        	steps{
         	echo "Your Selected Environment is : ${params.DEPLOY_ENV}"
         }
+      }
 
         stage('Environment') {
             steps {
