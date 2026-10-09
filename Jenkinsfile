@@ -22,7 +22,7 @@ pipeline {
     }
 
     environment {
-    	DEMO_API_TOKEN = Credentials(demo-api-token),
+    	DEMO_API_TOKEN = Credentials(demo-api-token)
         APP_NAME = 'devops-nodejs-cicd-lab'
     }
 
