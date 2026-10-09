@@ -26,6 +26,12 @@ pipeline {
     }
 
     stages {
+    stage('Approval') {
+        steps {
+            input message: 'Approve production deployment?',
+                  ok: 'Approve',
+                          }
+    }
         stage('Checkout') {
             steps {
                 checkout scm
