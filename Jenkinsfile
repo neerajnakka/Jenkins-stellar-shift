@@ -26,13 +26,7 @@ pipeline {
     }
 
     stages {
-    stage('Approval') {
-        steps {
-            input message: 'Approve production deployment?',
-                  ok: 'Approve',
-                          }
-    }
-        stage('Checkout') {
+     stage('Checkout') {
             steps {
                 checkout scm
             }
@@ -107,6 +101,15 @@ pipeline {
             }
             steps {
                 echo "Branch is ${env.BRANCH_NAME}"
+            }
+        }
+        stage('Production Approval') {
+            when {
+                expression { params.DEPLOY_ENV == 'PROD' }
+            }
+            steps {
+                input message: 'Approve production deployment?',
+                      ok: 'Approve'
             }
         }
     } 
