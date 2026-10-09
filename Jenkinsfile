@@ -74,7 +74,39 @@ pipeline {
             }
         }
     }
+    
 
+    	stage('When Production') {
+    	    when {
+    	        expression { params.DEPLOY_ENV == 'PROD' }
+    	    }
+    	    steps {
+    	        echo 'Production workflow'
+    	    }
+    	}
+
+    	stage('When Non-Production') {
+    	    when {
+    	        expression { params.DEPLOY_ENV != 'PROD' }
+    	    }
+    	    steps {
+    	        echo 'Non-production workflow'
+    	    }
+    	}
+
+    	stage('Main or Release Branch') {
+    	    when {
+    	        anyOf {
+    	            branch 'main'
+    	            branch 'release'
+    	        }
+    	    }
+    	    steps {
+    	        echo "Branch is ${env.BRANCH_NAME}"
+    	    }
+    	}
+
+}
     post {
         always {
             echo "Pipeline completed: ${currentBuild.currentResult}"
