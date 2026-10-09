@@ -1,86 +1,84 @@
 pipeline {
     agent any
-	options {
-    	skipDefaultCheckout(true)
-    	timestamps()
-//    	timeout(time:30,unit:'MINUTES')
-		disableConcurrentBuilds()
-		buildDiscarder(
-		    logRotator(
-		        numToKeepStr: '10',
-		        daysToKeepStr: '30',
-		        artifactNumToKeepStr: '5',
-		        artifactDaysToKeepStr: '14'
-		    )
-		)
-    	
-	}
-	parameters{
-		name: 'DEPLOY_ENV',
-		choice: ['DEV','STAGING','PROD'],
-		description: "choose the environemnt where you want to run the pipeline"
-	}
-	    environment {
-        APP_NAME = "devops-nodejs-cicd-lab"
+
+    options {
+        skipDefaultCheckout(true)
+        timestamps()
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(
+            numToKeepStr: '10',
+            daysToKeepStr: '30',
+            artifactNumToKeepStr: '5',
+            artifactDaysToKeepStr: '14'
+        ))
+    }
+
+    parameters {
+        choice(
+            name: 'DEPLOY_ENV',
+            choices: ['DEV', 'STAGING', 'PROD'],
+            description: 'Choose the environment for this pipeline'
+        )
+    }
+
+    environment {
+        APP_NAME = 'devops-nodejs-cicd-lab'
     }
 
     stages {
-        stage("Checkout") {
+        stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage("Environment") {
+        stage('Environment') {
             steps {
-                sh "node --version"
-                sh "npm --version"
+                sh 'node --version'
+                sh 'npm --version'
             }
         }
 
-        stage("Install Dependencies") {
+        stage('Install Dependencies') {
             steps {
-                sh "npm ci"
+                sh 'npm ci'
             }
         }
 
-        stage("Lint") {
+        stage('Lint') {
             steps {
-                sh "npm run lint"
+                sh 'npm run lint'
             }
         }
 
-        stage("Unit Tests") {
+        stage('Unit Tests') {
             steps {
-                sh "npm test"
+                sh 'npm test'
             }
         }
 
-        stage("Build") {
+        stage('Build') {
             steps {
-              
-                sh "npm run build"
+                sh 'npm run build'
             }
         }
 
-        stage("Docker Build") {
+        stage('Docker Build') {
             steps {
                 sh "docker build -t ${APP_NAME}:${BUILD_NUMBER} ."
             }
         }
-      }
+    }
 
     post {
         always {
             echo "Pipeline completed: ${currentBuild.currentResult}"
         }
-
         success {
-            echo "CI pipeline succeeded."
+            echo 'CI pipeline succeeded.'
         }
-
         failure {
-            echo "CI pipeline failed. Check the stage logs and identify the root cause."
+            echo 'CI pipeline failed. Check the stage logs and identify the root cause.'
         }
     }
 }
