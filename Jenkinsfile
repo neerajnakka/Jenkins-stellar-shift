@@ -46,8 +46,7 @@ pipeline {
         }
         stage('Verify Credential Binding') {
             steps {
-                sh 'test -n "${DEMO_API_TOKEN}" && echo "Credential binding successful'
-            }
+sh 'test -n "$DEMO_API_TOKEN" && echo "Credential binding successful"'            }
         }
 
         stage('Install Dependencies') {
