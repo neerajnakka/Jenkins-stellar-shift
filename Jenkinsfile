@@ -91,6 +91,32 @@ pipeline {
                       ok: 'Approve'
             }
         }
+        stage('Push to Amazon ECR') {
+            environment {
+                AWS_REGION = 'ap-southeast-2'
+                ECR_REPOSITORY = 'devops-nodejs-cicd-lab'
+            }
+            steps {
+                sh '''
+                    set -eu
+        
+                    AWS_ACCOUNT_ID=$(aws sts get-caller-identity \
+                        --query Account --output text)
+        
+                    ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                    IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${BUILD_NUMBER}"
+        
+                    aws ecr get-login-password --region "$AWS_REGION" |
+                        docker login --username AWS --password-stdin "$ECR_REGISTRY"
+        
+                    docker tag "${APP_NAME}:${BUILD_NUMBER}" "$IMAGE_URI"
+                    docker push "$IMAGE_URI"
+                    docker logout "$ECR_REGISTRY"
+        
+                    echo "Image pushed to Amazon ECR"
+                '''
+            }
+        }
 
         stage('Docker Image Deploy') {
             steps {
