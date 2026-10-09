@@ -113,19 +113,25 @@ pipeline {
             }
         }
     } 
-    post {
+   post {
         always {
-            echo "Pipeline completed: ${currentBuild.currentResult}"
-            always{
-            	deleteDir()
-            	echo "workspace deleted"
-            }
+            echo "Pipeline finished with status: ${currentBuild.currentResult}"
+    
+            junit testResults: 'reports/junit.xml',
+                  allowEmptyResults: true
+    
+            archiveArtifacts artifacts: 'Dockerfile,package.json,package-lock.json,reports/junit.xml',
+                             fingerprint: true
+    
+            deleteDir()
         }
+    
         success {
-            echo 'CI pipeline succeeded.'
+            echo 'Pipeline completed successfully.'
         }
+    
         failure {
-            echo 'CI pipeline failed. Check the stage logs and identify the root cause.'
+            echo 'Pipeline failed. Check the logs.'
         }
     }
 }
