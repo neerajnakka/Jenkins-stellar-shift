@@ -22,21 +22,22 @@ pipeline {
     }
 
     environment {
-		DEMO_API_TOKEN = credentials('demo-api-token')
+        DEMO_API_TOKEN = credentials('demo-api-token')
         APP_NAME = 'devops-nodejs-cicd-lab'
     }
 
     stages {
-     stage('Checkout') {
+        stage('Checkout') {
             steps {
                 checkout scm
             }
         }
-        stage('Display Deploy Stage'){
-        	steps{
-        	echo "Your Selected Environment is : ${params.DEPLOY_ENV}"
+
+        stage('Display Deploy Stage') {
+            steps {
+                echo "Your selected environment is: ${params.DEPLOY_ENV}"
+            }
         }
-      }
 
         stage('Environment') {
             steps {
@@ -44,9 +45,11 @@ pipeline {
                 sh 'npm --version'
             }
         }
+
         stage('Verify Credential Binding') {
             steps {
-sh 'test -n "$DEMO_API_TOKEN" && echo "Credential binding successful"'            }
+                sh 'test -n "$DEMO_API_TOKEN" && echo "Credential binding successful"'
+            }
         }
 
         stage('Install Dependencies') {
@@ -73,35 +76,45 @@ sh 'test -n "$DEMO_API_TOKEN" && echo "Credential binding successful"'          
             }
         }
 
-      stage('Docker Build') {
+        stage('Docker Build') {
             steps {
-                sh "docker build -t ${APP_NAME}:${BUILD_NUMBER} ."
+                sh 'docker build -t "$APP_NAME:$BUILD_NUMBER" .'
             }
         }
 
-      stgae('Docker Image Deploy'){
-      	environment{
-      		usernamePassword([
-      			credentialsId: 'dockerhub-creds',
-      			usernameVariable :'DOCKERHUB_USER ',
-      			passwordVariable: 'DOCKERHUB_PWD'
-      		])
-      	}
-      	steps{
-      		 sh '''
-                set +x
-                printf '%s' "$DOCKERHUB_TOKEN" |
-                    docker login --username "$DOCKERHUB_USER" --password-stdin
+        stage('Production Approval') {
+            when {
+                expression { params.DEPLOY_ENV == 'PROD' }
+            }
+            steps {
+                input message: 'Approve production deployment?',
+                      ok: 'Approve'
+            }
+        }
 
-                IMAGE="$DOCKERHUB_USER/$APP_NAME:$BUILD_NUMBER"
-                docker tag "$APP_NAME:$BUILD_NUMBER" "$IMAGE"
-                docker push "$IMAGE"
-                docker logout
-            '''
-      		
-      		 
-      	}
-      }
+        stage('Docker Image Deploy') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKERHUB_USER',
+                        passwordVariable: 'DOCKERHUB_PWD'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+                        IMAGE="$DOCKERHUB_USER/$APP_NAME:$BUILD_NUMBER"
+
+                        printf '%s' "$DOCKERHUB_PWD" |
+                            docker login --username "$DOCKERHUB_USER" --password-stdin
+
+                        docker tag "$APP_NAME:$BUILD_NUMBER" "$IMAGE"
+                        docker push "$IMAGE"
+                        docker logout
+                    '''
+                }
+            }
+        }
 
         stage('When Production') {
             when {
@@ -132,33 +145,30 @@ sh 'test -n "$DEMO_API_TOKEN" && echo "Credential binding successful"'          
                 echo "Branch is ${env.BRANCH_NAME}"
             }
         }
-        stage('Production Approval') {
-            when {
-                expression { params.DEPLOY_ENV == 'PROD' }
-            }
-            steps {
-                input message: 'Approve production deployment?',
-                      ok: 'Approve'
-            }
-        }
-    } 
-   post {
+    }
+
+    post {
         always {
             echo "Pipeline finished with status: ${currentBuild.currentResult}"
-    
-            junit testResults: 'reports/junit.xml',
-                  allowEmptyResults: true
-    
-            archiveArtifacts artifacts: 'Dockerfile,package.json,package-lock.json,reports/junit.xml',
-                             fingerprint: true
-    
+
+            junit(
+                testResults: 'reports/junit.xml',
+                allowEmptyResults: true
+            )
+
+            archiveArtifacts(
+                artifacts: 'Dockerfile,package.json,package-lock.json,reports/junit.xml',
+                allowEmptyArchive: true,
+                fingerprint: true
+            )
+
             deleteDir()
         }
-    
+
         success {
             echo 'Pipeline completed successfully.'
         }
-    
+
         failure {
             echo 'Pipeline failed. Check the logs.'
         }
