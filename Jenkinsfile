@@ -68,45 +68,42 @@ pipeline {
             }
         }
 
-        stage('Docker Build') {
+      stage('Docker Build') {
             steps {
                 sh "docker build -t ${APP_NAME}:${BUILD_NUMBER} ."
             }
         }
-    }
-    
 
-    	stage('When Production') {
-    	    when {
-    	        expression { params.DEPLOY_ENV == 'PROD' }
-    	    }
-    	    steps {
-    	        echo 'Production workflow'
-    	    }
-    	}
+        stage('When Production') {
+            when {
+                expression { params.DEPLOY_ENV == 'PROD' }
+            }
+            steps {
+                echo 'Production workflow'
+            }
+        }
 
-    	stage('When Non-Production') {
-    	    when {
-    	        expression { params.DEPLOY_ENV != 'PROD' }
-    	    }
-    	    steps {
-    	        echo 'Non-production workflow'
-    	    }
-    	}
+        stage('When Non-Production') {
+            when {
+                expression { params.DEPLOY_ENV != 'PROD' }
+            }
+            steps {
+                echo 'Non-production workflow'
+            }
+        }
 
-    	stage('Main or Release Branch') {
-    	    when {
-    	        anyOf {
-    	            branch 'main'
-    	            branch 'release'
-    	        }
-    	    }
-    	    steps {
-    	        echo "Branch is ${env.BRANCH_NAME}"
-    	    }
-    	}
-
-}
+        stage('Main or Release Branch') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'release'
+                }
+            }
+            steps {
+                echo "Branch is ${env.BRANCH_NAME}"
+            }
+        }
+    } 
     post {
         always {
             echo "Pipeline completed: ${currentBuild.currentResult}"
