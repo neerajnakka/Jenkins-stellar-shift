@@ -31,6 +31,9 @@ pipeline {
                 checkout scm
             }
         }
+        stage('Display Deploy Stage'){
+        	echo "Your Selected Environment is : ${params.DEPLOY_ENV}"
+        }
 
         stage('Environment') {
             steps {
