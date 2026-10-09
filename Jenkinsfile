@@ -79,6 +79,30 @@ sh 'test -n "$DEMO_API_TOKEN" && echo "Credential binding successful"'          
             }
         }
 
+      stgae('Docker Image Deploy'){
+      	environment{
+      		usernamePassword([
+      			credentialsId: 'dockerhub-creds',
+      			usernameVariable :'DOCKERHUB_USER ',
+      			passwordVariable: 'DOCKERHUB_PWD'
+      		])
+      	}
+      	steps{
+      		 sh '''
+                set +x
+                printf '%s' "$DOCKERHUB_TOKEN" |
+                    docker login --username "$DOCKERHUB_USER" --password-stdin
+
+                IMAGE="$DOCKERHUB_USER/$APP_NAME:$BUILD_NUMBER"
+                docker tag "$APP_NAME:$BUILD_NUMBER" "$IMAGE"
+                docker push "$IMAGE"
+                docker logout
+            '''
+      		
+      		 
+      	}
+      }
+
         stage('When Production') {
             when {
                 expression { params.DEPLOY_ENV == 'PROD' }
