@@ -116,6 +116,10 @@ pipeline {
     post {
         always {
             echo "Pipeline completed: ${currentBuild.currentResult}"
+            always{
+            	deleteDir()
+            	echo "workspace deleted"
+            }
         }
         success {
             echo 'CI pipeline succeeded.'
