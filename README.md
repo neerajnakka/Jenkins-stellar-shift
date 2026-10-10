@@ -103,6 +103,7 @@ We will progressively improve it during the training:
 
 Do not treat the current Jenkinsfile as the final production architecture.
 
+
 ## Suggested Git workflow
 
 ```text
