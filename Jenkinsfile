@@ -119,7 +119,7 @@ pipeline {
 
         stage('Production Approval') {
             when {
-                expression { params.DEPLOY_ENV == 'PROD' }
+                expression { params.DEPLOY_ENV == 'PROD' && env.GIT_BRANCH=='origin/main'}
             }
             steps {
                 input(
@@ -184,6 +184,17 @@ pipeline {
         }
 
         stage('Deploy to ECS Fargate') {
+        when {
+                allOf {
+                    expression {
+                        env.GIT_BRANCH == 'origin/develop'
+                    }
+                    expression {
+                        params.DEPLOY_ENV == 'DEV'
+                    }
+                }
+            }
+        
             steps {
                 sh '''
                     set -eu
