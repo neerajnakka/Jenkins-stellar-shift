@@ -91,18 +91,31 @@ pipeline {
             }
         }
 
-        stage('Lint') {
-            steps {
-                sh 'npm run lint'
+       
+        stage('Quality Checks') {
+            options {
+                timeout(time: 5, unit: 'MINUTES')
+            }
+        
+            parallel {
+                failFast true
+        
+                stage('Lint') {
+                    steps {
+                        echo 'Running lint checks...'
+                        sh 'npm run lint'
+                    }
+                }
+        
+                stage('Unit Tests') {
+                    steps {
+                        echo 'Running unit tests...'
+                        sh 'npm test'
+                    }
+                }
             }
         }
-
-        stage('Unit Tests') {
-            steps {
-                sh 'npm test'
-            }
-        }
-
+        
         stage('Build') {
             steps {
                 sh 'npm run build'
