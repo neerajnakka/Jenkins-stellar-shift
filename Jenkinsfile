@@ -39,24 +39,24 @@ pipeline {
             }
         }
 
-			stage('Retry Mechanism Test') {
-			    steps {
-			        script {
-			            int attempts = 0
-			
-			            retry(3) {
-			                attempts++
-			                echo "Attempt ${attempts}"
-			
-			                if (attempts < 3) {
-			                    error("Simulated temporary failure")
-			                }
-			
-			                echo 'Retry test passed'
-			            }
-			        }
-			    }
-			}
+        stage('Retry Mechanism Test') {
+            steps {
+                script {
+                    int attempts = 0
+
+                    retry(3) {
+                        attempts++
+                        echo "Attempt ${attempts}"
+
+                        if (attempts < 3) {
+                            error('Simulated temporary failure')
+                        }
+
+                        echo 'Retry test passed'
+                    }
+                }
+            }
+        }
 
         stage('Display Deploy Stage') {
             steps {
@@ -112,36 +112,34 @@ pipeline {
                 expression { params.DEPLOY_ENV == 'PROD' }
             }
             steps {
-                input message: 'Approve production deployment?',
-                      ok: 'Approve'
+                input(
+                    message: 'Approve production deployment?',
+                    ok: 'Approve'
+                )
             }
         }
-        
-      
-        
 
         stage('Push to Amazon ECR') {
             steps {
                 sh '''
-set -eu
+                    set -eu
 
-AWS_ACCOUNT_ID=$(aws sts get-caller-identity \
-    --query Account --output text \
-    --region "$AWS_REGION")
+                    AWS_ACCOUNT_ID=$(aws sts get-caller-identity \
+                        --query Account --output text \
+                        --region "$AWS_REGION")
 
-ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${BUILD_NUMBER}"
+                    ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                    IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${BUILD_NUMBER}"
 
-ECR_PASSWORD=$(aws ecr get-login-password --region "$AWS_REGION")
-printf '%s' "$ECR_PASSWORD" |
-    docker login --username AWS --password-stdin "$ECR_REGISTRY"
+                    aws ecr get-login-password --region "$AWS_REGION" |
+                        docker login --username AWS --password-stdin "$ECR_REGISTRY"
 
-docker tag "${APP_NAME}:${BUILD_NUMBER}" "$IMAGE_URI"
-docker push "$IMAGE_URI"
-docker logout "$ECR_REGISTRY"
+                    docker tag "${APP_NAME}:${BUILD_NUMBER}" "$IMAGE_URI"
+                    docker push "$IMAGE_URI"
+                    docker logout "$ECR_REGISTRY"
 
-echo "Image pushed to Amazon ECR: $IMAGE_URI"
-'''
+                    echo "Image pushed to Amazon ECR: $IMAGE_URI"
+                '''
             }
         }
 
@@ -178,33 +176,34 @@ echo "Image pushed to Amazon ECR: $IMAGE_URI"
         stage('Deploy to ECS Fargate') {
             steps {
                 sh '''
-set -eu
+                    set -eu
 
-AWS_ACCOUNT_ID=$(aws sts get-caller-identity \
-    --query Account --output text \
-    --region "$AWS_REGION")
+                    AWS_ACCOUNT_ID=$(aws sts get-caller-identity \
+                        --query Account --output text \
+                        --region "$AWS_REGION")
 
-ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${BUILD_NUMBER}"
-export IMAGE_URI CONTAINER_NAME
+                    ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                    IMAGE_URI="${ECR_REGISTRY}/${ECR_REPOSITORY}:${BUILD_NUMBER}"
+                    export IMAGE_URI CONTAINER_NAME
 
-echo "Preparing ECS deployment for ${IMAGE_URI}"
+                    echo "Preparing ECS deployment for ${IMAGE_URI}"
 
-aws ecs describe-task-definition \
-    --task-definition "$TASK_FAMILY" \
-    --region "$AWS_REGION" \
-    --query taskDefinition \
-    --output json > task-definition-current.json
+                    aws ecs describe-task-definition \
+                        --task-definition "$TASK_FAMILY" \
+                        --region "$AWS_REGION" \
+                        --query taskDefinition \
+                        --output json > task-definition-current.json
 
-python3 - <<'PY'
+                    python3 - <<'PY'
 import json
 import os
 
 with open("task-definition-current.json", encoding="utf-8") as f:
     task = json.load(f)
 
-# Remove response-only fields that RegisterTaskDefinition does not accept.
-for key in [
+# Remove fields returned by DescribeTaskDefinition that are not accepted
+# by RegisterTaskDefinition.
+for key in (
     "taskDefinitionArn",
     "revision",
     "status",
@@ -213,32 +212,28 @@ for key in [
     "registeredAt",
     "registeredBy",
     "deregisteredAt",
-]:
+):
     task.pop(key, None)
 
 container_name = os.environ["CONTAINER_NAME"]
 image_uri = os.environ["IMAGE_URI"]
 found = False
 
-
 for container in task["containerDefinitions"]:
     if container["name"] == container_name:
         container["image"] = image_uri
-
         container["healthCheck"] = {
             "command": [
                 "CMD-SHELL",
                 "wget --no-verbose --tries=1 --spider "
-                "http://127.0.0.1:3000/health || exit 1"
+                "http://127.0.0.1:3000/health || exit 1",
             ],
             "interval": 30,
             "timeout": 5,
             "retries": 3,
-            "startPeriod": 10
+            "startPeriod": 10,
         }
-
         found = True
-
 
 if not found:
     raise SystemExit(
@@ -251,47 +246,52 @@ with open("task-definition-new.json", "w", encoding="utf-8") as f:
 print(f"Prepared task definition with image: {image_uri}")
 PY
 
-NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
-    --cli-input-json file://task-definition-new.json \
-    --region "$AWS_REGION" \
-    --query 'taskDefinition.taskDefinitionArn' \
-    --output text)
+                    NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+                        --cli-input-json file://task-definition-new.json \
+                        --region "$AWS_REGION" \
+                        --query 'taskDefinition.taskDefinitionArn' \
+                        --output text)
 
-echo "Registered task definition: ${NEW_TASK_DEF_ARN}"
+                    echo "Registered task definition: ${NEW_TASK_DEF_ARN}"
 
-aws ecs update-service \
-    --cluster "$ECS_CLUSTER" \
-    --service "$ECS_SERVICE" \
-    --task-definition "$NEW_TASK_DEF_ARN" \
-    --region "$AWS_REGION"
+                    aws ecs update-service \
+                        --cluster "$ECS_CLUSTER" \
+                        --service "$ECS_SERVICE" \
+                        --task-definition "$NEW_TASK_DEF_ARN" \
+                        --region "$AWS_REGION"
 
-echo "Waiting for ECS service to stabilize..."
+                    echo "Waiting for ECS service to stabilize..."
 
-aws ecs wait services-stable \
-    --cluster "$ECS_CLUSTER" \
-    --services "$ECS_SERVICE" \
-    --region "$AWS_REGION"
+                    aws ecs wait services-stable \
+                        --cluster "$ECS_CLUSTER" \
+                        --services "$ECS_SERVICE" \
+                        --region "$AWS_REGION"
 
-echo "ECS deployment completed successfully."
-'''
+                    echo "ECS deployment completed successfully."
+                '''
             }
         }
     }
 
     post {
-    success {
-        emailext(
-            to: 'neerajnakka.n@gmail.com',
-            subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            body: """Build succeeded.
+        success {
+            emailext(
+                to: 'neerajnakka.n@gmail.com',
+                subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """Build succeeded.
 
 Job: ${env.JOB_NAME}
 Build: #${env.BUILD_NUMBER}
 Environment: ${params.DEPLOY_ENV}
 Build URL: ${env.BUILD_URL}
 """
-        )
-    }
+            )
+            echo 'Pipeline completed successfully.'
+        }
+
+        failure {
+            echo 'Pipeline failed. Check the logs.'
+        }
 
         always {
             echo "Pipeline finished with status: ${currentBuild.currentResult}"
@@ -308,14 +308,6 @@ Build URL: ${env.BUILD_URL}
             )
 
             deleteDir()
-        }
-
-        success {
-            echo 'Pipeline completed successfully.'
-        }
-
-        failure {
-            echo 'Pipeline failed. Check the logs.'
         }
     }
 }
