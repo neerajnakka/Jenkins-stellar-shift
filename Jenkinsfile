@@ -279,6 +279,20 @@ echo "ECS deployment completed successfully."
     }
 
     post {
+    success {
+        emailext(
+            to: 'neerajnakka.n@gmail.com',
+            subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            body: """Build succeeded.
+
+Job: ${env.JOB_NAME}
+Build: #${env.BUILD_NUMBER}
+Environment: ${params.DEPLOY_ENV}
+Build URL: ${env.BUILD_URL}
+"""
+        )
+    }
+
         always {
             echo "Pipeline finished with status: ${currentBuild.currentResult}"
 
