@@ -38,23 +38,42 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Retry test'){
+#         stage('Retry test'){
+# 
+#         	steps{
+#         		script{
+#         			int attempts=0
+#         			retry(3){
+#         				attempts++
+#         				echo "Attempts are ${attempts}"
+#         				if(attempts<3){
+#         					echo "simulated retry block"
+#         				}
+#         				echo "retry test passed"
+#         			}
+#         		}
+#         	}
+#         	
+#         }
 
-        	steps{
-        		script{
-        			int attempts=0
-        			retry(3){
-        				attempts++
-        				echo "Attempts are ${attempts}"
-        				if(attempts<3){
-        					echo "simulated retry block"
-        				}
-        				echo "retry test passed"
-        			}
-        		}
-        	}
-        	
-        }
+			stage('Retry Mechanism Test') {
+			    steps {
+			        script {
+			            int attempts = 0
+			
+			            retry(3) {
+			                attempts++
+			                echo "Attempt ${attempts}"
+			
+			                if (attempts < 3) {
+			                    error("Simulated temporary failure")
+			                }
+			
+			                echo 'Retry test passed'
+			            }
+			        }
+			    }
+			}
 
         stage('Display Deploy Stage') {
             steps {
