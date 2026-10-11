@@ -31,5 +31,12 @@ app.get("/api/version", (req, res) => {
     environment: process.env.NODE_ENV || "development"
   });
 });
-
+app.get("/api/info", (req, res) => {
+  res.json({
+    service: "nodejs-app",
+    version: process.env.APP_VERSION || "1.0.0",
+    environment: process.env.NODE_ENV || "development",
+    runtime: process.version
+  });
+});
 module.exports = app;

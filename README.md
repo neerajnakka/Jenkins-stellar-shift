@@ -1,5 +1,5 @@
 # DevOps Node.js CI/CD Lab
-
+   
 This repository is the starting point for a hands-on, production-style DevOps learning project.
 
 The goal is to progressively evolve this repository from a simple Node.js service into a complete CI/CD platform involving:
@@ -102,6 +102,7 @@ We will progressively improve it during the training:
 20. Kubernetes-based ephemeral agents
 
 Do not treat the current Jenkinsfile as the final production architecture.
+
 
 ## Suggested Git workflow
 
