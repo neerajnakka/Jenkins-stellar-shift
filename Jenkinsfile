@@ -1,3 +1,4 @@
+@Library('jenkins-shared-library') _
 pipeline {
     agent any
 
@@ -36,6 +37,13 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+        stage('Test Shared Library') {
+            steps {
+                script {
+                    pipelineGreeting('devops-nodejs-cicd-lab')
+                }
             }
         }
 
