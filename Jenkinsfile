@@ -111,7 +111,9 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t "$APP_NAME:$BUILD_NUMBER" .'
+               script {
+                   buildDockerImage(env.APP_NAME, env.BUILD_NUMBER)
+               }
             }
         }
 
